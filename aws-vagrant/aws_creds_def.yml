@@ -1,0 +1,4 @@
+---
+- access_key_id: "ACCESS KEY HERE"
+  secret_access_key: "SECRET ACCESS KEY HERE"
+  aws_session_token: "SESSION TOKEN HERE"

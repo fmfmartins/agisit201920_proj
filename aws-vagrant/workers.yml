@@ -1,0 +1,11 @@
+---
+- name: "worker1"
+  type: "t2.micro"
+  ami: "ami-00068cd7555f543d5"
+  user: "ec2-user"
+  private_ip: "172.31.36.1"
+- name: "worker2"
+  type: "t2.micro"
+  ami: "ami-00068cd7555f543d5"
+  user: "ec2-user"
+  private_ip: "172.31.36.2"

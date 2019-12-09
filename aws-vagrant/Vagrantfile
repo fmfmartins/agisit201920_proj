@@ -1,0 +1,106 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+require 'vagrant-aws'
+require 'yaml'
+
+
+managers = YAML.load_file(File.join(File.dirname(__FILE__), 'managers.yml'))
+workers = YAML.load_file(File.join(File.dirname(__FILE__), 'workers.yml'))
+aws_creds  = YAML.load_file(File.join(File.dirname(__FILE__), 'aws_creds.yml'))
+
+File.open("./hosts", 'w') { |file|
+  managers.each do |i|
+    file.write(i['private_ip'] + " " + i['name'] + "\n")
+  end
+  workers.each do |i|
+    file.write(i['private_ip'] + " " + i['name'] + "\n")
+  end
+}
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "aws-dummy"
+
+  config.vm.provider :aws do |aws, override|
+    aws.access_key_id = aws_creds[0]['access_key_id']
+    aws.secret_access_key = aws_creds[0]['secret_access_key']
+    aws.session_token = aws_creds[0]['aws_session_token']
+    aws.keypair_name = "agisit201920"
+    #aws.instance_type = "t2.micro"
+    #aws.ami = "ami-00068cd7555f543d5"
+    #override.ssh.username = "ec2-user"
+    #override.ssh.private_key_path = "agisit201920.pem"
+  end # config.vm.provider :aws
+
+  # Deploy Managers
+  managers.each do |manager|
+    $swarm_manager = <<-SCRIPT
+    docker swarm init --advertise-addr #{manager["private_ip"]}
+    docker swarm join-token -q worker > /vagrant/token
+    docker network create -d overlay --attachable monitor
+    rc=$?
+    if [ rc != 0 ]; then
+      echo Monitor network already created
+    fi
+    SCRIPT
+    config.vm.define manager['name'] do |mgr|
+
+      # Rsync Folder
+      mgr.vm.synced_folder '.', '/vagrant', type: "rsync", rsync__exclude: ".git/"
+
+      # Set per-instance provider configuration/overrides
+      mgr.vm.provider 'aws' do |aws, override|
+        override.ssh.private_key_path = './agisit201920.pem'
+        override.ssh.username = manager['user']
+        aws.instance_type = manager['type']
+        aws.ami = manager['ami']
+        aws.security_groups = ['sg-077b31678543350cb']
+        # Private IP must belong to VPC Subnet
+        aws.private_ip_address = manager['private_ip']
+        # VPC Subnet
+        aws.subnet_id = "subnet-12e5ec4e"
+      end # srv.vm.provider 'aws'
+      mgr.vm.provision "shell", path: "./provision.sh"
+      mgr.vm.provision "shell", inline: $swarm_manager
+      mgr.vm.provision "shell", path: "./prom_provision.sh"
+      if File.file?("./hosts")
+        mgr.vm.provision "file", source: "hosts", destination: "/tmp/hosts"
+        mgr.vm.provision "shell", inline: "cat /tmp/hosts >> /etc/hosts", privileged: true
+      end # if Hosts
+    end # config.vm.define
+  end # managers.each
+
+  # Deploy Workers
+  workers.each do |worker|
+    config.vm.define worker['name'] do |wkr|
+      $swarm_worker = <<-SCRIPT
+      set -x
+      ssh-keyscan -H #{managers[0]['private_ip']} >> ~/.ssh/known_hosts
+      scp -i "/vagrant/agisit201920.pem" ec2-user@#{managers[0]['private_ip']}:/vagrant/token /vagrant/token
+      docker swarm join --advertise-addr #{managers[0]['private_ip']} --listen-addr #{managers[0]['private_ip']}:2377 --token `cat /vagrant/token` #{managers[0]['private_ip']}:2377
+      rc=$?
+      if [ $rc != 0 ]; then
+        echo "Error joining swarm. (Maybe already joined?)"
+      fi
+      SCRIPT
+
+      # Rsync Folder
+      wkr.vm.synced_folder '.', '/vagrant', type: "rsync", rsync__exclude: ".git/"
+
+      # Set per-instance provider configuration/overrides
+      wkr.vm.provider 'aws' do |aws, override|
+        override.ssh.private_key_path = './agisit201920.pem'
+        override.ssh.username = worker['user']
+        aws.instance_type = worker['type']
+        aws.ami = worker['ami']
+        aws.security_groups = ['sg-077b31678543350cb']
+        # Private IP must belong to VPC Subnet
+        aws.private_ip_address = worker['private_ip']
+        # VPC Subnet
+        aws.subnet_id = "subnet-12e5ec4e"
+      end # srv.vm.provider 'aws'
+      wkr.vm.provision "shell", path: "./provision.sh"
+      wkr.vm.provision "shell", inline: $swarm_worker
+    end # config.vm.define
+  end # workers.each
+end # vagrant.configure
