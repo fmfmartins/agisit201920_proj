@@ -1,0 +1,60 @@
+---
+# file: aws.yml
+
+- hosts: targets
+  gather_facts: no
+  remote_user: ec2-user
+  become: yes
+  become_method: sudo
+
+  tasks:
+    - name: upgrade all packages
+      yum:
+        name: '*'
+        state: latest
+        
+    - name: install pip
+      yum:
+        name: python-pip
+        state: latest
+        update_cache: yes
+
+    - name: install docker
+      shell: amazon-linux-extras install -y docker
+      args:
+        creates: /bin/docker
+
+    - name: install docker module in pip (for ansible docker info)
+      pip:
+        name: docker
+
+    - name: add remote user to docker group
+      user:
+        name: "{{ ansible_user }}"
+        groups: 'docker'
+        append: yes
+
+    - name: start docker service
+      service:
+        name: docker
+        state: started
+
+    - name: docker info
+      docker_host_info:
+        images: yes
+        verbose_output: yes
+      register: result
+    - debug:
+        var: result.host_info
+
+    - name: copy daemon json to docker
+      copy:
+        src: /home/vagrant/test-tenant/daemon.json
+        dest: /etc/docker
+      notify: restart docker
+
+  handlers:
+    - name: restart docker
+      service:
+        name: docker
+        state: restarted

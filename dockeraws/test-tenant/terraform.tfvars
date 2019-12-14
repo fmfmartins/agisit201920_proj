@@ -1,0 +1,6 @@
+access_key          = "XXX"
+secret_key          = "XXX"
+token               = "XXX"
+region              = "us-east-1"
+ssh_key_public      = "/home/vagrant/.ssh/id_rsa.pub"
+ssh_key_private     = "/home/vagrant/.ssh/id_rsa"

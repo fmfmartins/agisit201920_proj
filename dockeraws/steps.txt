@@ -1,0 +1,28 @@
+this is basically all in lab08 guide, tbh
+
+verifying clean enviroment with 
+vagrant global-status
+
+vagrant halt if any machines running
+
+vagrant destroy all machines (at least irrelevant to this lab)
+
+use Vagrantfile and bootstrap.sh from cloud experiment to launch cloud management node
+
+ping osmgmt (192.168.56.10)
+
+ssh in osmgmt
+
+go to aws website to get credentials, and update them in credentials.sh and terraform.tfvars
+
+generate ssh key (rsa, 2048)
+
+convert private key to pem format (ssh-keygen -p -m PEM -f ~/.ssh/id_rsa) - turns out i didn't need to
+
+launch terraform init, plan, apply
+
+update myhosts file, update /etc/hosts file, with ip public addresses
+
+ssh-keyscan manager worker1 worker2 >> .ssh/known_hosts
+
+afterwards, run playbook (incomplete!!!)
