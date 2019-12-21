@@ -17,7 +17,7 @@
 #
 #  route {
 #    cidr_block = "0.0.0.0/0"         //CRT uses this IGW to reach internet
-#    gateway_id = "${aws_internet_gateway.gateway.id}" 
+#    gateway_id = "${aws_internet_gateway.gateway.id}"
 #  }
 #}
 
@@ -40,41 +40,111 @@
 #    from_port = 22
 #    to_port = 22
 #    protocol = "tcp"
-#    // This means, all ip address are allowed to ssh ! 
-#    // Do not do it in the production. 
+#    // This means, all ip address are allowed to ssh !
+#    // Do not do it in the production.
 #    // Put your office or home address in it!
-#    cidr_blocks = ["0.0.0.0/0"]
-#  }
-  
-#  //If you do not add this rule, you can not reach the NGINX  
-#  ingress {
-#    from_port = 80
-#    to_port = 80
-#    protocol = "tcp"
 #    cidr_blocks = ["0.0.0.0/0"]
 #  }
 
 resource "aws_security_group" "security-group" {
-  name = "security-group"
+  name = "agisit-security-group"
   tags = {
         Name = "security-group"
   }
-  
-  # Allow all inbound
+
+  # Allow Swarm ESP
   ingress {
     from_port   = 0
     to_port     = 65535
+    protocol    = "50"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Allow SSH
+  ingress {
+    from_port   = 22
+    to_port     = 22
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  
+
+  # Allow HTTP
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Allow Swarm
+  ingress {
+    from_port   = 2377
+    to_port     = 2377
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Allow Grafana
+  ingress {
+    from_port   = 3000
+    to_port     = 3000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Allow Docker Swarm Gossip
+  ingress {
+    from_port   = 7946
+    to_port     = 7946
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 7946
+    to_port     = 7946
+    protocol    = "udp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Allow cAdvisor
+  ingress {
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  #Allow node-exporter
+  ingress {
+    from_port   = 9100
+    to_port     = 9100
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Allow Docker Prometheus Exporter
+  ingress {
+    from_port   = 9323
+    to_port     = 9323
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  #ingress {
+  #  from_port   = 0
+  #  to_port     = 65535
+  #  protocol    = "tcp"
+  #  cidr_blocks = ["0.0.0.0/0"]
+  #}
+
   egress {
     from_port   = 0
     to_port     = 65535
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  
+
   # Enable ICMP
   ingress {
     from_port = -1
@@ -83,4 +153,3 @@ resource "aws_security_group" "security-group" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
-

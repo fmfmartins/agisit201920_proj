@@ -1,5 +1,5 @@
 resource "aws_key_pair" "keypair" {
-  key_name = "keypair"
+  key_name = "osmgmt_swarm"
   public_key = file(var.ssh_key_public)
 }
 
@@ -8,7 +8,8 @@ resource "aws_instance" "manager" {
   instance_type = "t2.micro"
   key_name = aws_key_pair.keypair.key_name
   vpc_security_group_ids = [aws_security_group.security-group.id]
-  
+  private_ip = "172.31.36.1"
+
   tags = {
     Name = "manager"
   }
@@ -20,8 +21,10 @@ resource "aws_instance" "worker" {
   instance_type = "t2.micro"
   key_name = aws_key_pair.keypair.key_name
   vpc_security_group_ids = [aws_security_group.security-group.id]
+  private_ip = "172.31.35.${count.index+1}"
 
   tags = {
-    Name = "worker ${count.index+1}"
+    Name = "worker${count.index+1}"
   }
+
 }

@@ -2,7 +2,7 @@
 # file: aws.yml
 
 - hosts: targets
-  gather_facts: no
+  gather_facts: yes
   remote_user: ec2-user
   become: yes
   become_method: sudo
@@ -12,12 +12,16 @@
       yum:
         name: '*'
         state: latest
-        
+
+    - name: install python
+      yum:
+        name: python
+        state: latest
+
     - name: install pip
       yum:
         name: python-pip
         state: latest
-        update_cache: yes
 
     - name: install docker
       shell: amazon-linux-extras install -y docker
@@ -52,6 +56,112 @@
         src: /home/vagrant/test-tenant/daemon.json
         dest: /etc/docker
       notify: restart docker
+
+  handlers:
+    - name: restart docker
+      service:
+        name: docker
+        state: restarted
+
+- hosts: manager
+  gather_facts: yes
+  remote_user: ec2-user
+  become: yes
+  become_method: sudo
+
+  tasks:
+    - name: Init a new swarm with default parameters
+      docker_swarm:
+        advertise_addr: "{{ advertise_addr }}"
+        state: present
+
+    - name: retrieve swarm worker token
+      shell: docker swarm join-token -q worker
+      register: swarm_worker_token
+
+- hosts: workers
+  gather_facts: yes
+  remote_user: ec2-user
+  become: yes
+  become_method: sudo
+  vars:
+    token: "{{ hostvars[groups['managers'][0]]['swarm_worker_token']['stdout'] }}"
+    advertise_addr: "{{ hostvars[groups['managers'][0]]['advertise_addr'] }}"
+
+  tasks:
+    - name: Add worker node to swarm
+      docker_swarm:
+        state: join
+        advertise_addr: "{{ advertise_addr }}"
+        join_token: "{{ token }}"
+        remote_addrs: [ '{{ advertise_addr }}:2377' ]
+
+- hosts: manager
+  gather_facts: yes
+  remote_user: ec2-user
+  become: yes
+  become_method: sudo
+
+  tasks:
+    - name: copy prometheus.yml from osmgmt to manager
+      copy:
+        src: /home/vagrant/test-tenant/prometheus.yml
+        dest: /tmp/
+      notify: restart docker
+
+    - name: start prometheus container
+      docker_container:
+        name: prometheus
+        image: prom/prometheus
+        volumes: /tmp/prometheus.yml:/etc/prometheus/prometheus.yml
+        network_mode: host
+        restart_policy: "unless-stopped"
+        state: started
+
+    - name: start grafana container
+      docker_container:
+        name: grafana
+        image: grafana/grafana
+        ports:
+          - "3000:3000"
+        restart_policy: "unless-stopped"
+        state: started
+
+    - name: start node-exporter service
+      docker_swarm_service:
+        name: node-exporter
+        image: prom/node-exporter
+        mode: global
+        publish:
+          - published_port: 9100
+            target_port: 9100
+            mode: host
+        endpoint_mode: dnsrr
+
+    - name: start cadvisor service
+      docker_swarm_service:
+        name: cadvisor
+        image: google/cadvisor:latest
+        mode: global
+        publish:
+          - published_port: 8080
+            target_port: 8080
+            mode: host
+        endpoint_mode: dnsrr
+        mounts:
+          - source: /var/lib/docker/
+            target: /var/lib/docker:ro
+            type: bind
+          - source: /var/run
+            target: /var/run:rw
+            type: bind
+          - source: /sys
+            target: /sys:ro
+            type: bind
+          - source: /
+            target: /rootfs:ro
+            type: bind
+
 
   handlers:
     - name: restart docker
