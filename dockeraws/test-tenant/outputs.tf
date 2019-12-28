@@ -1,10 +1,10 @@
-output "private_key"  {
-   value = file(var.ssh_key_private)
- }
+#output "private_key"  {
+#   value = file(var.ssh_key_private)
+# }
 
-output "public_key"  {
-   value = file(var.ssh_key_public)
- }
+#output "public_key"  {
+#   value = file(var.ssh_key_public)
+# }
 
 output "keypair" {
   value = aws_key_pair.keypair.key_name
