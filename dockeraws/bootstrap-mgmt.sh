@@ -23,10 +23,6 @@ wget https://releases.hashicorp.com/terraform/${VER}/terraform_${VER}_linux_amd6
 sudo unzip terraform_${VER}_linux_amd64.zip -d /usr/local/bin
 rm terraform_${VER}_linux_amd64.zip
 
-# install OpenStack SDK modules
-pip install openstacksdk
-sudo apt install python3-openstackclient
-
 # Clean up cached packages
 sudo apt-get clean all
 

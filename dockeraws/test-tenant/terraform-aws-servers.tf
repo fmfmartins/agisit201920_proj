@@ -8,7 +8,8 @@ resource "aws_instance" "manager" {
   instance_type = "t2.micro"
   key_name = aws_key_pair.keypair.key_name
   vpc_security_group_ids = [aws_security_group.security-group.id]
-  private_ip = "172.31.36.1"
+  availability_zone = "us-east-1a"
+  private_ip = "172.31.1.1"
 
   tags = {
     Name = "manager"
@@ -21,7 +22,8 @@ resource "aws_instance" "worker" {
   instance_type = "t2.micro"
   key_name = aws_key_pair.keypair.key_name
   vpc_security_group_ids = [aws_security_group.security-group.id]
-  private_ip = "172.31.35.${count.index+1}"
+  availability_zone = "us-east-1a"
+  private_ip = "172.31.10.${count.index+1}"
 
   tags = {
     Name = "worker${count.index+1}"
