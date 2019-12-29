@@ -1,0 +1,62 @@
+---
+# file: aws-docker-swarm-destroy.yml
+
+- hosts:  manager
+  gather_facts: yes
+  remote_user: ec2-user
+
+  tasks:
+    - name: get info on all nodes
+      docker_node_info:
+      register: result
+
+    - name: stop nginx webserver
+      docker_swarm_service:
+        name: web
+        state: absent
+
+    - name: stop cadvisor service
+      docker_swarm_service:
+        name: cadvisor
+        state: absent
+
+    - name: stop node-exporter service
+      docker_swarm_service:
+        name: node-exporter
+        state: absent
+
+    - name: stop grafana container
+      docker_container:
+        name: grafana
+        state: absent
+
+    - name: stop prometheus container
+      docker_container:
+        name: prometheus
+        state: absent
+
+    - name: set worker availability to drain
+      docker_node:
+        hostname: "{{ item.ID }}"
+        availability: drain
+      when: item.Spec.Role == "worker"
+      with_items: "{{ result['nodes'] }}"
+
+- hosts:  workers
+  gather_facts: yes
+  remote_user: ec2-user
+
+  tasks:
+    - name: remove worker from swarm
+      docker_swarm:
+        state: absent
+
+- hosts:  managers
+  gather_facts: yes
+  remote_user: ec2-user
+
+  tasks:
+    - name: remove manager from swarm
+      docker_swarm:
+        state: absent
+        force: true

@@ -7,7 +7,7 @@
 variable "access_key" {}
 variable "secret_key" {}
 variable "token" {}
-variable "region"	{}
+variable "region" {}
 variable "ssh_key_public" {}
 variable "ssh_key_private" {}
 

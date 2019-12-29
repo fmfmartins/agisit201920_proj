@@ -7,9 +7,9 @@ resource "aws_instance" "manager" {
   ami = "ami-00068cd7555f543d5"
   instance_type = "t2.micro"
   key_name = aws_key_pair.keypair.key_name
-  vpc_security_group_ids = [aws_security_group.security-group.id]
-  availability_zone = "us-east-1a"
-  private_ip = "172.31.1.1"
+  subnet_id = data.aws_subnet.agisit-subnet.id
+  vpc_security_group_ids = [aws_security_group.agisit-security-group.id]
+  private_ip = "172.31.36.1"
 
   tags = {
     Name = "manager"
@@ -21,12 +21,11 @@ resource "aws_instance" "worker" {
   ami = "ami-00068cd7555f543d5"
   instance_type = "t2.micro"
   key_name = aws_key_pair.keypair.key_name
-  vpc_security_group_ids = [aws_security_group.security-group.id]
-  availability_zone = "us-east-1a"
-  private_ip = "172.31.10.${count.index+1}"
+  subnet_id = data.aws_subnet.agisit-subnet.id
+  vpc_security_group_ids = [aws_security_group.agisit-security-group.id]
+  private_ip = "172.31.35.${count.index+1}"
 
   tags = {
     Name = "worker${count.index+1}"
   }
-
 }

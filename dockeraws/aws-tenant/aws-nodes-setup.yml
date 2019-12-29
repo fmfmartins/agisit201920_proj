@@ -1,0 +1,44 @@
+---
+# file: aws-site-servers-setup-all.yml
+
+- hosts: targets
+  gather_facts: no
+  remote_user: ec2-user
+  become: yes
+  become_method: sudo
+
+  tasks:
+    - name: upgrade all packages
+      yum:
+        name: '*'
+        state: latest
+        update_cache: yes
+
+    - name: install pip
+      yum:
+        name: python-pip
+        state: latest
+
+    - name: install docker
+      shell: amazon-linux-extras install -y docker
+      args:
+        creates: /bin/docker
+
+    - name: install docker module in pip (for ansible docker info)
+      pip:
+        name: docker
+
+    - name: add remote user to docker group
+      user:
+        name: "{{ ansible_user }}"
+        groups: 'docker'
+        append: yes
+
+    - name: reset ssh connection to allow user group changes to affect 'ec2-user'
+      meta: reset_connection
+
+    - name: start docker service
+      service:
+        name: docker
+        state: started
+        enabled: yes

@@ -1,5 +1,5 @@
 ---
-# file: aws.yml
+# file: aws-docker-swarm-setup.yml
 
 - hosts: targets
   gather_facts: yes
@@ -8,52 +8,15 @@
   become_method: sudo
 
   tasks:
-    - name: upgrade all packages
-      yum:
-        name: '*'
-        state: latest
-
-    - name: install python
-      yum:
-        name: python
-        state: latest
-
-    - name: install pip
-      yum:
-        name: python-pip
-        state: latest
-
-    - name: install docker
-      shell: amazon-linux-extras install -y docker
-      args:
-        creates: /bin/docker
-
-    - name: install docker module in pip (for ansible docker info)
-      pip:
-        name: docker
-
-    - name: add remote user to docker group
-      user:
-        name: "{{ ansible_user }}"
-        groups: 'docker'
-        append: yes
-
     - name: start docker service
       service:
         name: docker
         state: started
-
-    - name: docker info
-      docker_host_info:
-        images: yes
-        verbose_output: yes
-      register: result
-    - debug:
-        var: result.host_info
+        enabled: yes
 
     - name: copy daemon json to docker
       copy:
-        src: /home/vagrant/test-tenant/daemon.json
+        src: /home/vagrant/aws-tenant/templates/daemon.json
         dest: /etc/docker
       notify: restart docker
 
@@ -66,46 +29,38 @@
 - hosts: manager
   gather_facts: yes
   remote_user: ec2-user
-  become: yes
-  become_method: sudo
 
   tasks:
-    - name: Init a new swarm with default parameters
+    - name: init docker swarm
       docker_swarm:
-        advertise_addr: "{{ advertise_addr }}"
+        advertise_addr: "{{ ansible_default_ipv4.address | default(ansible_all_ipv4_addresses[0]) }}"
         state: present
-
-    - name: retrieve swarm worker token
-      shell: docker swarm join-token -q worker
-      register: swarm_worker_token
+      register: swarm_result
 
 - hosts: workers
   gather_facts: yes
   remote_user: ec2-user
-  become: yes
-  become_method: sudo
   vars:
-    token: "{{ hostvars[groups['managers'][0]]['swarm_worker_token']['stdout'] }}"
-    advertise_addr: "{{ hostvars[groups['managers'][0]]['advertise_addr'] }}"
+    token: "{{ hostvars['manager']['swarm_result']['swarm_facts']['JoinTokens']['Worker'] }}"
+    advertise_addr: "{{ hostvars['manager'].ansible_default_ipv4.address | default(hostvars['manager'].ansible_all_ipv4_addresses[0]) }}"
 
   tasks:
-    - name: Add worker node to swarm
+    - name: join docker swarm
       docker_swarm:
-        state: join
         advertise_addr: "{{ advertise_addr }}"
+        listen_addr: "{{ advertise_addr }}:2377"
         join_token: "{{ token }}"
-        remote_addrs: [ '{{ advertise_addr }}:2377' ]
+        remote_addrs: [ "{{ advertise_addr }}:2377" ]
+        state: join
 
 - hosts: manager
   gather_facts: yes
   remote_user: ec2-user
-  become: yes
-  become_method: sudo
 
   tasks:
-    - name: copy prometheus.yml from osmgmt to manager
+    - name: deploy prometheus configuration
       copy:
-        src: /home/vagrant/test-tenant/prometheus.yml
+        src: /home/vagrant/aws-tenant/templates/prometheus.yml
         dest: /tmp/
       notify: restart docker
 
@@ -137,6 +92,7 @@
             target_port: 9100
             mode: host
         endpoint_mode: dnsrr
+        state: present
 
     - name: start cadvisor service
       docker_swarm_service:
@@ -148,6 +104,7 @@
             target_port: 8080
             mode: host
         endpoint_mode: dnsrr
+        state: present
         mounts:
           - source: /var/lib/docker/
             target: /var/lib/docker:ro
@@ -162,9 +119,21 @@
             target: /rootfs:ro
             type: bind
 
+    - name: launch nginx webserver
+      docker_swarm_service:
+        name: web
+        image: varonynt/hello-swarm:1.0
+        replicas: 3
+        publish:
+          - published_port: 80
+            target_port: 80
+        state: present
 
   handlers:
     - name: restart docker
+      become: yes
+      become_method: sudo
       service:
         name: docker
         state: restarted
+

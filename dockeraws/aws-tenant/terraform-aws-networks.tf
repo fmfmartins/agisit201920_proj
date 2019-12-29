@@ -1,55 +1,16 @@
-#resource "aws_vpc" "vpc" {
-#  cidr_block = "172.31.0.0/16"
-#}
+resource "aws_default_vpc" "default-vpc" {
+}
 
-#resource "aws_subnet" "subnet-public" {
-#  vpc_id = "${aws_vpc.vpc.id}
-#  cidr_block = "172.31.0.0/24"
-#  map_public_ip_on_launch = “true”
-#}
+data "aws_subnet" "agisit-subnet" {
+  vpc_id = aws_default_vpc.default-vpc.id
+  cidr_block = "172.31.32.0/20"
+}
 
-#resource "aws_internet_gateway" "gateway" {
-#  vpc_id = "${aws_vpc.vpc.id}"
-#}
-
-#resource "aws_route_table" "route-table-public" {
-#  vpc_id = "${aws_vpc.vpc.id}"
-#
-#  route {
-#    cidr_block = "0.0.0.0/0"         //CRT uses this IGW to reach internet
-#    gateway_id = "${aws_internet_gateway.gateway.id}"
-#  }
-#}
-
-#resource "aws_route_table_association" "route-table-subnet-public"{
-#  subnet_id = "${aws_subnet.subnet-public.id}"
-#  route_table_id = "${aws_route_table.route-table-public.id}"
-#}
-
-#resource "aws_security_group" "security-group" {
-#  vpc_id = "${aws_vpc.vpc.id}"
-
-#  egress {
-#    from_port = 0
-#    to_port = 0
-#    protocol = -1
-#    cidr_blocks = ["0.0.0.0/0"]
-#  }
-
-#  ingress {
-#    from_port = 22
-#    to_port = 22
-#    protocol = "tcp"
-#    // This means, all ip address are allowed to ssh !
-#    // Do not do it in the production.
-#    // Put your office or home address in it!
-#    cidr_blocks = ["0.0.0.0/0"]
-#  }
-
-resource "aws_security_group" "security-group" {
-  name_prefix = "agisit-sg"
+resource "aws_security_group" "agisit-security-group" {
+  name = "agisit-security-group"
+  vpc_id = aws_default_vpc.default-vpc.id
   tags = {
-        Name = "security-group"
+        Name = "agisit-security-group"
   }
 
   # Allow Swarm ESP
@@ -75,7 +36,7 @@ resource "aws_security_group" "security-group" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
+  
   # Allow Swarm
   ingress {
     from_port   = 2377
@@ -92,7 +53,7 @@ resource "aws_security_group" "security-group" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Allow Docker Swarm Gossip
+  # Allow Docker Swarm Gossip (TCP and UDP)
   ingress {
     from_port   = 7946
     to_port     = 7946
@@ -115,13 +76,14 @@ resource "aws_security_group" "security-group" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-    # Allow Prometheus dashboard
+  # Allow Prometheus dashboard
   ingress {
     from_port   = 9090
     to_port     = 9090
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
 
   #Allow node-exporter
   ingress {
@@ -138,13 +100,6 @@ resource "aws_security_group" "security-group" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
-  #ingress {
-  #  from_port   = 0
-  #  to_port     = 65535
-  #  protocol    = "tcp"
-  #  cidr_blocks = ["0.0.0.0/0"]
-  #}
 
   egress {
     from_port   = 0

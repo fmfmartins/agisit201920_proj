@@ -7,6 +7,7 @@ sudo apt-get -y upgrade
 sudo apt-get -y install software-properties-common
 sudo apt-get -y install unzip
 sudo apt-get -y install build-essential libssl-dev libffi-dev python-pip python3-pip
+sudo apt-get -y install jq
 
 # Add graph builder tool for Terraform
 sudo apt-get -y install graphviz
@@ -18,10 +19,13 @@ sudo apt-get -y install ansible
 
 # Install Terraform
 sudo apt-get update
-export VER="0.12.17"
-wget https://releases.hashicorp.com/terraform/${VER}/terraform_${VER}_linux_amd64.zip
-sudo unzip terraform_${VER}_linux_amd64.zip -d /usr/local/bin
-rm terraform_${VER}_linux_amd64.zip
+TERRAFORM_VER=$(curl -sL https://releases.hashicorp.com/terraform/index.json | jq -r '.versions[].builds[].url' | egrep 'terraform_[0-9]\.[0-9]{1,2}\.[0-9]{1,2}_linux.*amd64' | sort -V | tail -1)
+curl ${TERRAFORM_VER} > ./terraform.zip
+sudo unzip terraform.zip -d /usr/local/bin
+rm terraform.zip
+
+# Install the Amazon AWS CLI version 1
+sudo snap install aws-cli --classic
 
 # Clean up cached packages
 sudo apt-get clean all
