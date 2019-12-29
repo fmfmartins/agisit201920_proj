@@ -1,28 +1,36 @@
-this is basically all in lab08 guide, tbh
+1. Verify if your enviroment is clean with the command vagrant global-status, and halt any machines with vagrant halt
 
-verifying clean enviroment with 
-vagrant global-status
+2. Destroy the machines you see fit with vagrant destroy
 
-vagrant halt if any machines running
+3. Launch the osmgmt machine with vagrant up. If you want, ping the osmgmt node.
 
-vagrant destroy all machines (at least irrelevant to this lab)
+4. ssh into osmgmt with vagrant ssh
 
-use Vagrantfile and bootstrap.sh from cloud experiment to launch cloud management node
+5. Go to AWS website, login, go to the classroom, and click the button Account Details to get the credentials needed. Fill the files CREDENTIALS.sh and terraform.tfvars with the credentials
 
-ping osmgmt (192.168.56.10)
+6. Generate a new ssh key with ssh-keygen -t rsa -b 2048, using the default parameters for the remaining options (no password, etc.)
 
-ssh in osmgmt
+7. Use terraform init command to get the terraform modules needed.
 
-go to aws website to get credentials, and update them in credentials.sh and terraform.tfvars
+8. Use terraform plan to see the infrastructure that will be launched.
 
-generate ssh key (rsa, 2048)
+9. Launch in the infrastructure in the AWS servers using terraform apply command, and answering yes to the prompt.
 
-convert private key to pem format (ssh-keygen -p -m PEM -f ~/.ssh/id_rsa) - turns out i didn't need to
+10. Update the inventory file and /etc/hosts/ file with the IPs of the nodes (the IPs are returned by the output of terraform apply).
 
-launch terraform init, plan, apply
+11. Run the ssh-keyscan manager worker1 worker2 >> ~/.ssh/known_hosts command.
 
-update myhosts file, update /etc/hosts file, with ip public addresses
+12. Run the aws-nodes-setup.yml playbook to prepare the nodes.
 
-ssh-keyscan manager worker1 worker2 >> .ssh/known_hosts
+13. Run the aws-docker-swarm-setup.yml playbook to launch the swarm.
 
-afterwards, run playbook (incomplete!!!)
+14. Do whatever you want.
+
+15. (Optional) Run the aws-docker-swarm-destroy.yml playbook to destroy the swarm.
+
+16. Run terraform destroy command to destroy the infrastructure, and answer yes to the prompt.
+
+17. Exit the osmgmt machine with exit command.
+
+18. Run the vagrant halt command to stop the osmgmt machine.
+
