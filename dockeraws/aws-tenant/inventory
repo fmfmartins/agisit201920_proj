@@ -3,9 +3,9 @@
 
 # Modify the line with the ansible_host for the public IP address of your Tenant
 # For that, un-comment the following line before running instances configuration
-manager     ansible_host=XXX ansible_user=ec2-user ansible_connection=ssh ansible_private_key_file=/home/vagrant/.ssh/id_rsa
-worker1     ansible_host=XXX ansible_user=ec2-user ansible_connection=ssh ansible_private_key_file=/home/vagrant/.ssh/id_rsa
-worker2     ansible_host=XXX ansible_user=ec2-user ansible_connection=ssh ansible_private_key_file=/home/vagrant/.ssh/id_rsa
+manager     ansible_host=PUBLIC_IP_OF_MANAGER ansible_user=ec2-user ansible_connection=ssh ansible_private_key_file=/home/vagrant/.ssh/id_rsa
+worker1     ansible_host=PUBLIC_IP_OF_WORKER1 ansible_user=ec2-user ansible_connection=ssh ansible_private_key_file=/home/vagrant/.ssh/id_rsa
+worker2     ansible_host=PUBLIC_IP_OF_WORKER2 ansible_user=ec2-user ansible_connection=ssh ansible_private_key_file=/home/vagrant/.ssh/id_rsa
 
 # The local deployment host VM
 [osmgmt]
